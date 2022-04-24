@@ -25,7 +25,7 @@ ADDITIONAL_APT_PACKAGES=""
 
 ## RUN TESTS IN LINUX CONTAINER
 ## --------------------------------------------------------------------------------------------------------------------
-docker run -ti --rm \
+docker run -t --rm \
   --platform=${PLATFORM}  \
   -v ${SCRIPT_DIR}/Package.swift:/Project/Package.swift \
   -v ${SCRIPT_DIR}/Sources:/Project/Sources \
