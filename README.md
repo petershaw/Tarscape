@@ -5,6 +5,10 @@
 
 Tarscape is a Swift package for reading and writing Tar archives on macOS and iOS.
 
+### Status
+[![macos](https://github.com/petershaw/Tarscape/actions/workflows/macos.yml/badge.svg)](https://github.com/petershaw/Tarscape/actions/workflows/macos.yml)
+[![Linux](https://github.com/petershaw/Tarscape/actions/workflows/linux.yml/badge.svg)](https://github.com/petershaw/Tarscape/actions/workflows/linux.yml)
+
 
 ## Installation
 
