@@ -7,10 +7,7 @@
 
 import Foundation
 
-@objc // Expose this extension to Objective-C.
 public extension FileManager {
-    
-    @nonobjc
     func extractTar(at tarURL: URL, to dirURL: URL, options: KBTarUnarchiver.Options = [.restoreFileAttributes], progress: Progress? = nil) throws {
         let unarchiver = try KBTarUnarchiver(tarURL: tarURL, options: options)
         
@@ -27,8 +24,7 @@ public extension FileManager {
         
         try KBTarUnarchiver(tarURL: tarURL, options: options).extract(to: dirURL, progressBody: progressBody)
     }
-    
-    @nonobjc
+
     func createTar(at tarURL: URL, from dirURL: URL, options: KBTarArchiver.Options = [],  progress: Progress? = nil) throws {
         let archiver = KBTarArchiver(directoryURL: dirURL, options: options)
         
@@ -55,7 +51,6 @@ public extension FileManager {
     /// - Parameter restoreAttributes: If `false`, file attributes stored in the archive such as modification dates and file
     ///     permissions be ignored. This can significantly speed up the extraction process.
     /// - Parameter progressBody: A closure with a `Double` parameter representing the current progress (from 0.0 to 1.0).
-    @objc(extractTarAtURL:toDirectoryAtURL:restoreAttributes:progressBlock:error:)
     func extractTar(at tarURL: URL, to dirURL: URL, restoreAttributes: Bool,  progress: Progress? = nil) throws {
         try extractTar(at: tarURL, to: dirURL, options: restoreAttributes ? .restoreFileAttributes : [], progress: progress)
     }
@@ -66,7 +61,6 @@ public extension FileManager {
     /// - Parameter convertAliasFiles: The Tar format doesn't support alias files by default, only symbolic links. If this
     ///     is set to `true`, archiving will check for alias files and store them as symbolic links. This can take longer.
     /// - Parameter progressBody: A closure with a `Double` parameter representing the current progress (from 0.0 to 1.0).
-    @objc(createTarAtURL:fromDirectoryAtURL:convertAliasFiles:progressBlock:error:)
     func createTar(at tarURL: URL, from dirURL: URL, convertAliasFiles: Bool,  progress: Progress? = nil) throws {
         try createTar(at: tarURL, from: dirURL, options: convertAliasFiles ? .convertAliasFiles : [], progress: progress)
     }

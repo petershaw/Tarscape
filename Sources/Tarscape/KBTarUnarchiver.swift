@@ -408,73 +408,72 @@ public class KBTarUnarchiver {
             // with absolutes rather than fractions.)
             progressBody?(Double(location)/Double(size), Int64(location))
             
-            try autoreleasepool { // Keep memory tidy.
-                let type = try type(at: location)
-                
-                // Grab the extended header if the last entry was one.
-                // Then clear the cached extended header for the next pass.
-                // (An extended header is a regular entry with its own header, which
-                // overrides header information in the entry that follows it.)
-                let extendedHeader = nextExtendedHeader
-                nextExtendedHeader = nil
-                
-                var name: String?
-                var size = 0
-                
-                switch type {
-                    
-                case .normalFile:
-                    name = try self.name(at: location, extendedHeader: extendedHeader)
-                    size = try fileSize(at: location, extendedHeader: extendedHeader)
-                    if size > 0 {
-                        // Get the number of 512 blocks used for this data (Tar data is
-                        // always written in multiples of 512 bytes, with zero-byte padding at
-                        // the end). Round up - the last block will be padded.
-                        // (Subtract 1 from size before dividing to ensure we will be one
-                        // block short, so that adding the extra block is right even if we
-                        // started with an exact multiple of 512.)
-                        blockCount += ((size - 1) / KBTar.blockSize) + 1
-                    }
-                    
-                case .directory:
-                    name = try self.name(at: location, extendedHeader: extendedHeader)
-                    // No need to increment block count as directories contain no data, just a header.
-                    
-                case .symbolicLink:
-                    name = try self.name(at: location, extendedHeader: extendedHeader)
-                    
-                case .nullBlock:
-                    break // Do nothing.
-                    
-                case .extendedHeader:
-                    // An extended header cannot itself have an extended header,
-                    // so pass in nil for the header here.
-                    let size = try fileSize(at: location, extendedHeader: nil)
-                    if size > 0 {
-                        // We grab the extended header that will affect the next entry.
-                        nextExtendedHeader = try self.extendedHeader(at: location, length: size)
-                        blockCount += ((size - 1) / KBTar.blockSize) + 1
-                    }
-                    
-                    // Not a file or directory?
-                case .hardLink, .characterSpecial, .blockSpecial, .FIFO, .contiguousFile, .globalExtendedHeader:
-                    // Unsupported block - just skip over it.
-                    let size = try fileSize(at: location, extendedHeader: extendedHeader)
+
+            let type = try type(at: location)
+
+            // Grab the extended header if the last entry was one.
+            // Then clear the cached extended header for the next pass.
+            // (An extended header is a regular entry with its own header, which
+            // overrides header information in the entry that follows it.)
+            let extendedHeader = nextExtendedHeader
+            nextExtendedHeader = nil
+
+            var name: String?
+            var size = 0
+
+            switch type {
+
+            case .normalFile:
+                name = try self.name(at: location, extendedHeader: extendedHeader)
+                size = try fileSize(at: location, extendedHeader: extendedHeader)
+                if size > 0 {
+                    // Get the number of 512 blocks used for this data (Tar data is
+                    // always written in multiples of 512 bytes, with zero-byte padding at
+                    // the end). Round up - the last block will be padded.
+                    // (Subtract 1 from size before dividing to ensure we will be one
+                    // block short, so that adding the extra block is right even if we
+                    // started with an exact multiple of 512.)
                     blockCount += ((size - 1) / KBTar.blockSize) + 1
-                    
-                case .other: // Unknown type - throw an error.
-                    throw KBTarError.invalidTarType
                 }
-                
-                // We only call the block for types we need to make files or get data for.
-                // (i.e. Only those we have a name for.)
-                if let name = name {
-                    var stop = false
-                    try entryBlock(name, location, size, type, extendedHeader, &stop)
-                    keepGoing = !stop
+
+            case .directory:
+                name = try self.name(at: location, extendedHeader: extendedHeader)
+                // No need to increment block count as directories contain no data, just a header.
+
+            case .symbolicLink:
+                name = try self.name(at: location, extendedHeader: extendedHeader)
+
+            case .nullBlock:
+                break // Do nothing.
+
+            case .extendedHeader:
+                // An extended header cannot itself have an extended header,
+                // so pass in nil for the header here.
+                let size = try fileSize(at: location, extendedHeader: nil)
+                if size > 0 {
+                    // We grab the extended header that will affect the next entry.
+                    nextExtendedHeader = try self.extendedHeader(at: location, length: size)
+                    blockCount += ((size - 1) / KBTar.blockSize) + 1
                 }
+
+                // Not a file or directory?
+            case .hardLink, .characterSpecial, .blockSpecial, .FIFO, .contiguousFile, .globalExtendedHeader:
+                // Unsupported block - just skip over it.
+                let size = try fileSize(at: location, extendedHeader: extendedHeader)
+                blockCount += ((size - 1) / KBTar.blockSize) + 1
+
+            case .other: // Unknown type - throw an error.
+                throw KBTarError.invalidTarType
             }
-            
+
+            // We only call the block for types we need to make files or get data for.
+            // (i.e. Only those we have a name for.)
+            if let name = name {
+                var stop = false
+                try entryBlock(name, location, size, type, extendedHeader, &stop)
+                keepGoing = !stop
+            }
+
             location += UInt64(blockCount * KBTar.blockSize)
         }
         
@@ -681,21 +680,15 @@ public class KBTarUnarchiver {
         let destinationHandle = try FileHandle(forWritingTo: fileURL)
         var remainingSize = size
         while remainingSize > maxReadingSize {
-            // Use an autorelease pool so that we don't consume memory
-            // with large files.
-            try autoreleasepool {
-                if let contents = try fileHandle.read(upToCount: maxReadingSize) {
-                    try destinationHandle.write(contentsOf: contents)
-                }
-                remainingSize -= maxReadingSize
+            if let contents = try fileHandle.read(upToCount: maxReadingSize) {
+                try destinationHandle.write(contentsOf: contents)
             }
+            remainingSize -= maxReadingSize
         }
         // Read what's left.
         if remainingSize > 0 {
-            try autoreleasepool {
-                if let contents = try fileHandle.read(upToCount: remainingSize) {
-                    try destinationHandle.write(contentsOf: contents)
-                }
+            if let contents = try fileHandle.read(upToCount: remainingSize) {
+                try destinationHandle.write(contentsOf: contents)
             }
         }
         // We've finished writing, so close the file.

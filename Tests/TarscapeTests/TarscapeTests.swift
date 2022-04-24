@@ -22,7 +22,11 @@ final class TarscapeTests: XCTestCase {
         try "Hello world".write(to: dirURL.appendingPathComponent("file1.txt"), atomically: true, encoding: .utf8)
         let innerFolder = dirURL.appendingPathComponent("inner_folder")
         try fm.createDirectory(at: innerFolder, withIntermediateDirectories: false, attributes: nil)
+        #if os(Linux)
+        let file2Date = Date(timeIntervalSinceNow: 0) //-(3 * 24 * 60 * 60) // ToDo: Linux can not set modificationDate
+        #else
         let file2Date = Date(timeIntervalSinceNow: -(3 * 24 * 60 * 60))
+        #endif
         let file2URL = innerFolder.appendingPathComponent("file2.txt")
         try "Another file".write(to: file2URL, atomically: true, encoding: .utf8)
         try fm.setAttributes([.modificationDate: file2Date], ofItemAtPath: file2URL.path)
@@ -37,32 +41,37 @@ final class TarscapeTests: XCTestCase {
         try fm.extractTar(at: tarURL, to: untarURL)
         
         // Check things match.
-        XCTAssert(fm.fileExists(atPath: untarURL.appendingPathComponent("file1.txt").path))
+        XCTAssert(fm.fileExists(atPath: untarURL.appendingPathComponent("file1.txt").path), "file1 does not exists.")
         let f1text = try String(contentsOf: untarURL.appendingPathComponent("file1.txt"), encoding: .utf8)
-        XCTAssert(f1text == "Hello world")
+        XCTAssert(f1text == "Hello world", "File1 content is not the same")
         var isDir:ObjCBool = false
         let untarInnerFolder =  untarURL.appendingPathComponent("inner_folder")
-        XCTAssert(fm.fileExists(atPath: untarInnerFolder.path, isDirectory: &isDir) && isDir.boolValue)
+        XCTAssert(fm.fileExists(atPath: untarInnerFolder.path, isDirectory: &isDir) && isDir.boolValue, "Inner folder does not exists.")
         let untarFile2URL = untarInnerFolder.appendingPathComponent("file2.txt")
-        XCTAssert(fm.fileExists(atPath: untarFile2URL.path))
+        XCTAssert(fm.fileExists(atPath: untarFile2URL.path), "File2 dies not exist.")
         let f2text = try String(contentsOf: untarFile2URL, encoding: .utf8)
-        XCTAssert(f2text == "Another file")
-        XCTAssert(fm.fileExists(atPath: untarURL.appendingPathComponent("empty_file").path))
+        XCTAssert(f2text == "Another file", "File2 content is not the same")
+        XCTAssert(fm.fileExists(atPath: untarURL.appendingPathComponent("empty_file").path), "Empty file does not exist.")
         
         if let emptyLen = try fm.attributesOfItem(atPath: untarURL.appendingPathComponent("empty_file").path)[.size] as? Int {
-            XCTAssert(emptyLen == 0)
+            XCTAssert(emptyLen == 0, "Empty file size is not zero.")
         }
         
         // Check dates match.
         let untarFile2Date = try fm.attributesOfItem(atPath: untarFile2URL.path)[.modificationDate] as? Date
-        XCTAssert(untarFile2Date != nil)
+        XCTAssert(untarFile2Date != nil, "Modification date is nil.")
         
         // Dates should match down to seconds, but not at any finer granularity, so use date components
         // for comparison becuase Date1 == Date2 is likely to fail.
         if let untarFile2Date = untarFile2Date {
             let dateComps1 = Calendar.current.dateComponents([.day, .month, .year, .hour, .minute, .second], from: file2Date)
             let dateComps2 = Calendar.current.dateComponents([.day, .month, .year, .hour, .minute, .second], from: untarFile2Date)
-            XCTAssert(dateComps1 == dateComps2)
+            XCTAssertEqual(dateComps1.day!, dateComps2.day!, "Day is not the same.")
+            XCTAssertEqual(dateComps1.month!, dateComps2.month!, "Month is not the same.")
+            XCTAssertEqual(dateComps1.year!, dateComps2.year!, "Year is not the same.")
+            XCTAssertEqual(dateComps1.hour!, dateComps2.hour!, "Hour is not the same.")
+            XCTAssertEqual(dateComps1.minute!, dateComps2.minute!, "Minute is not the same.")
+            XCTAssertEqual(dateComps1.second!, dateComps2.second!, "Second is not the same.")
         }
     }
     

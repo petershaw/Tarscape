@@ -104,11 +104,9 @@ public class KBTarArchiver {
         // while handling things slightly differently if we need to show the
         // progress.
         func encode(fileURL: URL) throws {
-            try autoreleasepool {
-                // Work out the subpath.
-                let subpath = String(fileURL.standardizedFileURL.path.dropFirst(basepathLen))
-                try encodeBinaryData(for: fileURL, subpath: subpath)
-            }
+            // Work out the subpath.
+            let subpath = String(fileURL.standardizedFileURL.path.dropFirst(basepathLen))
+            try encodeBinaryData(for: fileURL, subpath: subpath)
         }
         
         if progressBody != nil {
@@ -208,20 +206,22 @@ public class KBTarArchiver {
                 permissions = fileAttributes.permissions
             }
             
-            if tarType == .symbolicLink,
-               let fileURL = fileURL {
-                // Ty to get the destination file.
-                if options.contains(.convertAliasFiles) && fileAttributes?.fileType == .alias {
-                    // Aliases are slighlty different from symbolic links.
-                    linkName = try? URL(resolvingAliasFileAt: fileURL, options: [.withoutUI, .withoutMounting]).path
-                } else {
-                    linkName = try? FileManager.default.destinationOfSymbolicLink(atPath: fileURL.path)
-                    if linkName == nil {
-                        // If we couldn't resolve the symbolic link, treat it as an alias.
-                        linkName = try? URL(resolvingAliasFileAt: fileURL, options: [.withoutUI, .withoutMounting]).path
-                    }
-                }
-            }
+//            if tarType == .symbolicLink,
+//               let fileURL = fileURL {
+//                // Ty to get the destination file.
+//                if options.contains(.convertAliasFiles) && fileAttributes?.fileType == .alias {
+//                    // Aliases are slighlty different from symbolic links.
+//                    linkName = try? URL(
+//                    linkName = try? URL(resolvingAliasFileAt: fileURL, options: [.withoutUI, .withoutMounting]).path
+//
+//                } else {
+//                    linkName = try? FileManager.default.destinationOfSymbolicLink(atPath: fileURL.path)
+//                    if linkName == nil {
+//                        // If we couldn't resolve the symbolic link, treat it as an alias.
+//                        linkName = try? URL(resolvingAliasFileAt: fileURL, options: [.withoutUI, .withoutMounting]).path
+//                    }
+//                }
+//            }
         }
         
         // Create the empty data to which we will append the header.
@@ -480,19 +480,15 @@ public class KBTarArchiver {
         let readingHandle = try FileHandle(forReadingFrom: fileURL)
         var remainingSize = size
         while remainingSize > copyChunkSize {
-            try autoreleasepool {
-                if let content = try readingHandle.read(upToCount: copyChunkSize) {
-                    try fileHandle.write(contentsOf: content)
-                }
-                remainingSize -= copyChunkSize
+            if let content = try readingHandle.read(upToCount: copyChunkSize) {
+                try fileHandle.write(contentsOf: content)
             }
+            remainingSize -= copyChunkSize
         }
         // Copy what's left.
         if remainingSize > 0 {
-            try autoreleasepool {
-                if let content = try readingHandle.read(upToCount: remainingSize) {
-                    try fileHandle.write(contentsOf: content)
-                }
+            if let content = try readingHandle.read(upToCount: remainingSize) {
+                try fileHandle.write(contentsOf: content)
             }
         }
         

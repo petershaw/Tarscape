@@ -48,11 +48,20 @@ public struct KBFileAttributes {
         self.fileSize = Int(fileStat.st_size)
         
         // Modification date.
+        #if os(Linux)
+        let modTimeSpec = fileStat.st_mtim
+        #else
         let modTimeSpec = fileStat.st_mtimespec
+        #endif
+
         self.modificationDateTimeSince1970 = TimeInterval(modTimeSpec.tv_sec) + TimeInterval(modTimeSpec.tv_nsec)/1000000000.0
          
         // Creation date.
+        #if os(Linux)
+        let createTimeSpec: timespec = timespec()
+        #else
         let createTimeSpec = fileStat.st_birthtimespec
+        #endif
         self.creationDateTimeSince1970 = TimeInterval(createTimeSpec.tv_sec) + TimeInterval(createTimeSpec.tv_sec)/1000000000.0
          
         // Owner account ID.
